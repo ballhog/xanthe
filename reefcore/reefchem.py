@@ -306,6 +306,77 @@ def _last_done():
     return out
 
 
+# Filter roller advances (2026-10-21). Each trip of the Hydros '1RFliter Roller' level sensor runs the roller
+# motor ~2 s = one advance. Before LSSS 754c3cf the sensor was stored every 5 min and the trips were lost;
+# from then on every 0->1 edge is stored, so advances can be counted. Counts before this moment are not valid.
+ROLLER_EDGES_SINCE = 1792555266          # 2026-10-21 00:01:06 local, LSSS 754c3cf deployed
+ROLLER_SENSOR = "1RFliter Roller"
+
+
+def roller_changes():
+    """Roll-change times (epoch s) from maintenance-log.md, oldest first. 'undone' lines cancel the change before."""
+    import re as _re
+    out = []
+    try:
+        for l in (DATA / "maintenance-log.md").read_text().splitlines():
+            m = _re.match(r"^- (\d{4}-\d{2}-\d{2} \d{2}:\d{2}) M02 (.*)$", l)
+            if not m:
+                continue
+            if "undone" in m.group(2):
+                if out:
+                    out.pop()
+                continue
+            out.append(int(datetime.strptime(m.group(1), "%Y-%m-%d %H:%M").timestamp()))
+    except OSError:
+        pass
+    return sorted(out)
+
+
+def roller_status(db, now):
+    """Advances counted from sensor edges; per-roll total learned from complete rolls (change -> change, both after
+    ROLLER_EDGES_SINCE); % used and run-out date once one is learned. Script arithmetic only."""
+    pts = series(db, ROLLER_SENSOR, "hydros", ROLLER_EDGES_SINCE, now)
+    adv, prev = [], None
+    for t, v in pts:
+        on = v >= 0.5
+        if on and prev is False:
+            adv.append(t)
+        prev = on
+    changes = roller_changes()
+    last_change = changes[-1] if changes else None
+    counted_days = (now - ROLLER_EDGES_SINCE) / D
+    win = min(7 * D, now - ROLLER_EDGES_SINCE)
+    rate = (sum(1 for a in adv if a >= now - win) / (win / D)) if win >= 12 * 3600 else None
+    rolls = [sum(1 for a in adv if c0 <= a < c1) for c0, c1 in zip(changes, changes[1:]) if c0 >= ROLLER_EDGES_SINCE]
+    per_roll = round(sum(rolls) / len(rolls)) if rolls else None
+    full = last_change is not None and last_change >= ROLLER_EDGES_SINCE
+    since = sum(1 for a in adv if last_change is None or a >= last_change)
+    st = {"advances": len(adv), "rate_day": rate, "counted_days": counted_days, "rolls_learned": len(rolls),
+          "per_roll": per_roll, "since_change": since, "current_roll_fully_counted": full,
+          "last_change": last_change, "pct_used": None, "days_left": None, "out_date": None}
+    if per_roll and full:
+        st["pct_used"] = round(100 * since / per_roll)
+        if rate:
+            st["days_left"] = max(0.0, (per_roll - since) / rate)
+            st["out_date"] = datetime.fromtimestamp(now + st["days_left"] * D).strftime("%m-%d")
+    return st
+
+
+def roller_text(st):
+    since0 = datetime.fromtimestamp(ROLLER_EDGES_SINCE).strftime("%m-%d")
+    rate = f"{st['rate_day']:.0f}/day" if st["rate_day"] is not None else "rate after 12 h of counting"
+    if st["pct_used"] is not None:
+        t = (f"roll about {st['pct_used']}% used ({st['since_change']} of ~{st['per_roll']} advances per roll, "
+             f"learned from {st['rolls_learned']} roll(s)); {rate}")
+        if st["out_date"]:
+            t += f"; runs out around {st['out_date']}"
+        return t
+    t = f"{st['advances']} roll advances counted since {since0} ({rate})"
+    if st["per_roll"] and not st["current_roll_fully_counted"]:
+        return t + f"; ~{st['per_roll']} per roll, % used starts after the next logged roll change"
+    return t + "; run-out estimate after one full roll is counted (logged change to logged change)"
+
+
 def data_due(db, now):
     """Maintenance signals from the sensors, alongside the calendar (Group 1, 2026-10-12).
     Returns {task_id: {"level": "overdue"|"due"|"info", "short": str, "reason": str}}. Script arithmetic only."""
@@ -417,6 +488,20 @@ def data_due(db, now):
                + (f"; {len(stuck)} stuck spells since {datetime.fromtimestamp(since):%m-%d}" if len(stuck) > 1 else ""))
         out["M02"] = {"level": "due", "short": "roller sensor stuck on",
                       "reason": why + ": roll may be jammed, slipping on the motor drive, or out"}
+    try:                                   # advances / roll used / run-out (info unless nearly out)
+        st = roller_status(db, now)
+        txt = roller_text(st)
+        nearly = (st["pct_used"] is not None and st["pct_used"] >= 95) or (st["days_left"] is not None and st["days_left"] <= 2)
+        if "M02" in out:
+            out["M02"]["reason"] += "; " + txt
+        else:
+            short = (f"roll {st['pct_used']}% used" if st["pct_used"] is not None
+                     else f"{st['rate_day']:.0f} advances/day" if st["rate_day"] is not None else "counting advances")
+            out["M02"] = {"level": "due" if nearly else "info", "short": "roll nearly out" if nearly else short,
+                          "reason": txt}
+        out["M02"]["roller"] = st
+    except Exception:
+        pass
     # M14 DI resin: product TDS (Hydros), the high end of the last 3 days of readings above 0
     tds = sorted(v for _, v in series(db, "tds", "hydros", now - 3 * D) if v > 0)
     if tds:
