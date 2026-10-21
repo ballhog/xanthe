@@ -347,31 +347,76 @@ def data_due(db, now):
                       "reason": "; ".join(parts)}
 
     def trips(param, since):
+        """Trip events [(start_ts, end_ts or None if still on)], and whether the sensor is on now."""
         pts = series(db, param, "hydros", since)
-        n, prev = 0, None
-        for _, v in pts:
+        ev, prev, t_on = [], None, None
+        for t, v in pts:
             on = v >= 0.5
             if on and prev is False:
-                n += 1
+                t_on = t
+            elif not on and prev and t_on is not None:
+                ev.append((t_on, t))
+                t_on = None
             prev = on
-        return n, (pts[-1][1] >= 0.5 if pts else None)
+        now_on = (pts[-1][1] >= 0.5) if pts else None
+        if now_on and t_on is not None:
+            ev.append((t_on, None))
+        return ev, now_on
+
+    def trip_level(ev, now_on):
+        """One short trip that cleared = info (shown, not flagged). On now, 2+ trips, or 15+ min on = due."""
+        on_s = sum((b or now) - a for a, b in ev)
+        if now_on or len(ev) >= 2 or on_s >= 15 * 60:
+            return "due"
+        return "info" if ev else None
+
+    def trip_text(ev, now_on):
+        if not ev:
+            return "is on now" if now_on else "quiet"
+        if len(ev) == 1:
+            a, b = ev[0]
+            mins = max(1, round(((b or now) - a) / 60))
+            return (f"tripped once, {datetime.fromtimestamp(a):%m-%d %H:%M}, about {mins} min"
+                    + (", still on" if b is None else ", cleared on its own"))
+        return (f"tripped {len(ev)} times, last {datetime.fromtimestamp(ev[-1][0]):%m-%d %H:%M}"
+                + (", on now" if now_on else ""))
 
     # M01 skimmer cup: the cup-full sensor tripped since the last cleaning (or in 7 days)
     since = max(now - 7 * D, int(last.get("M01") or 0))
-    n, now_on = trips("1R SkimOverflow", since)
-    if n or now_on:
-        out["M01"] = {"level": "due", "short": "cup-full sensor tripped" if n else "cup-full sensor on",
-                      "reason": f"Hydros '1R SkimOverflow' tripped {n} time(s) since {datetime.fromtimestamp(since):%m-%d}"
-                                + (" and is on now" if now_on else "")}
+    ev, now_on = trips("1R SkimOverflow", since)
+    lvl = trip_level(ev, now_on)
+    why = f"Hydros '1R SkimOverflow' {trip_text(ev, now_on)} (since {datetime.fromtimestamp(since):%m-%d})"
+    if lvl == "due":
+        out["M01"] = {"level": "due", "short": "cup-full sensor on" if now_on else "cup-full sensor tripped", "reason": why}
+    elif lvl == "info":
+        out["M01"] = {"level": "info", "short": "one brief cup trip", "reason": why}
     else:
         out["M01"] = {"level": "info", "short": "cup sensor quiet", "reason": "cup-full sensor has not tripped in 7 days"}
-    # M02 filter roller: chamber overfill sensor (roll out or jammed)
+    # M02 filter roller: '1RFliter Roller' is the ADVANCE level sensor (Joe 2026-10-20). Each trip runs the
+    # roller motor ~2 s, so brief trips are normal and mostly fall between the ~5 min samples. Only a sensor
+    # STUCK ON (on in 2+ consecutive samples) means the roll is jammed, slipping on the drive, or out.
     since = max(now - 7 * D, int(last.get("M02") or 0))
-    n, now_on = trips("1RFliter Roller", since)
-    if n or now_on:
-        out["M02"] = {"level": "due", "short": "roller chamber overfill",
-                      "reason": f"Hydros '1RFliter Roller' (chamber overfill) tripped {n} time(s) in 7 days"
-                                + (" and is on now" if now_on else "") + ": roll may be out or jammed"}
+    pts = series(db, "1RFliter Roller", "hydros", since)
+    runs, cur = [], None                                  # runs of consecutive "on" samples: [start, end, n]
+    for t, v in pts:
+        if v >= 0.5:
+            if cur is None:
+                cur = [t, t, 0]
+            cur[1], cur[2] = t, cur[2] + 1
+        elif cur is not None:
+            runs.append(cur); cur = None
+    stuck_now = cur is not None and cur[2] >= 2
+    if cur is not None:
+        runs.append(cur)
+    stuck = [r for r in runs if r[2] >= 2]
+    if stuck:
+        r = stuck[-1]
+        mins = max(1, round((r[1] - r[0]) / 60))
+        why = (f"Hydros '1RFliter Roller' (advance sensor) stuck on {'now, ' if stuck_now else ''}"
+               f"{datetime.fromtimestamp(r[0]):%m-%d %H:%M}, {r[2]} samples (~{mins}+ min)"
+               + (f"; {len(stuck)} stuck spells since {datetime.fromtimestamp(since):%m-%d}" if len(stuck) > 1 else ""))
+        out["M02"] = {"level": "due", "short": "roller sensor stuck on",
+                      "reason": why + ": roll may be jammed, slipping on the motor drive, or out"}
     # M14 DI resin: product TDS (Hydros), the high end of the last 3 days of readings above 0
     tds = sorted(v for _, v in series(db, "tds", "hydros", now - 3 * D) if v > 0)
     if tds:
