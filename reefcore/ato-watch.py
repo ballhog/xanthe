@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ATO top-off watcher (reefcore CT 101). stdlib only.
 
-Polls the LSSS Hydros live feed every 15 s for ~4m45s and records each change of the
+Polls the Coeno Hydros live feed every 15 s for ~4m45s and records each change of the
 '1R Sump ATO' input into /root/reef-lab/data/hydros.db (table ato). hydros-pull.py starts one
 of these each 5-minute cron run, so coverage is continuous. senseValue 0 = water low / topping off,
 1 = full. A run = the time the input stayed at 0 (resolution ~15 s, if the feed updates that fast).
@@ -10,12 +10,12 @@ of these each 5-minute cron run, so coverage is continuous. senseValue 0 = water
   ato-watch.py runs [H]        top-off runs in the last H hours (default 24)
 """
 import fcntl, json, sqlite3, sys, time, urllib.request
-try:  # LSSS machine key on every call to the LSSS (LSSS sign-in, 2026-10-14); harmless with no key
-    __import__("sys").path.insert(0, "/opt/reefcore"); import lsss_auth  # noqa: E402,F401
+try:  # Coeno machine key on every call to Coeno (Coeno sign-in, 2026-10-14); harmless with no key
+    __import__("sys").path.insert(0, "/opt/reefcore"); import coeno_auth  # noqa: E402,F401
 except Exception:
     pass
 
-LSSS = "http://10.0.0.228:8000/api/hydros/live"
+COENO = "http://10.0.0.228:8000/api/hydros/live"
 DB = "/root/reef-lab/data/hydros.db"
 INPUT = "1R Sump ATO"
 LOCK = "/tmp/ato-watch.lock"
@@ -29,7 +29,7 @@ def db():
 
 
 def read():
-    with urllib.request.urlopen(LSSS, timeout=20) as r:
+    with urllib.request.urlopen(COENO, timeout=20) as r:
         live = json.load(r)
     if not live.get("connected") or (live.get("last_update_age_s") or 1e9) > 600:
         return None, None

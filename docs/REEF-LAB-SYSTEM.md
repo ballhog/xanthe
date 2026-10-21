@@ -12,7 +12,7 @@ tags: [node-zero, reef-lab, claude-reefer, reef-log, mccrae, reefcore, palomino,
 > the `reef` share as `Reef Lab System.md`. The older deep reference (Hermes era) is in
 > `docs/history/how-it-works-2026-10-03.md`.
 
-How the reef data, the reef log ("Claude Reefer"), Telegram and voice logging, and the home page fit
+How the reef data, the reef log ("Xanthe"), Telegram and voice logging, and the home page fit
 together. Recipes: `reef_lab/data/recipes.md` (and Joe's vault note `Mixing Notes - DIY Balling.md`).
 
 Secrets are never written here, only where they live.
@@ -26,13 +26,13 @@ Secrets are never written here, only where they live.
 **What changed in rev 10-11:** GHL ProfiLux now wired (PLM-WiFiLAN card, 10.0.0.215) with the GHL API at
 full access; `ghl-pull.py` uses one TCP session; flow plugs re-mapped after the card swap (logical names kept);
 humidity/temp card moved to the Expansion Box on the 200 (slots 10/11). Telegram answers "status" instantly
-and treats questions without "?" as questions. Hydros feed watchdog fixed (Joe, via the LSSS). nz-home: home
+and treats questions without "?" as questions. Hydros feed watchdog fixed (Joe, via Coeno). nz-home: home
 page fits any screen with no scrolling (wall monitor to phone, bottom tabs on phones), sub-pages scroll,
 Recipes became a dosing-station graphic with a daily-dosing gauge panel, Maintenance became an Imperial
 schematic of the whole system with tasks completed right in the pop-up. Lighting recorded in the tank
 profile. Reef PC by the tank runs the home page full screen. GHL doser retrofit parked on the roadmap.
 
-**What changed in rev 10-10 (vs 10-09):** Claude Reefer is the only AI voice (Haiku digest and Hermes retired,
+**What changed in rev 10-10 (vs 10-09):** Xanthe is the only AI voice (Haiku digest and Hermes retired,
 local LLM retired); always-on Telegram listener + iPhone voice; coral registry with care sheets;
 maintenance, recipes and dosing-jug pages; Hydros outputs and ATO logged; GHL ProfiLux connected
 (flow sensors); new report sections (flow, salinity drift, pH bump, jugs, maintenance); Imperial gauges
@@ -114,7 +114,7 @@ claude-reefer repo (this guide is its section 0).
 - **Evening check-in, 8 pm:** 🐟 Fed · 🌊 Water change (then gallons) · 🧪 Mixed a jug (then which) · 🔧 Maintenance (then which task) · 👍 Nothing else, then ✔ Done. Tap as many as fit; it shows what was already logged today so nothing gets double-entered.
 - **Supplies:** plain words work: `supplies: 6 x 55 lb boxes reef salt, 40 lb calcium chloride`, `received epsom 5 lb` (adds to what's there), `have 1000 ml left in the mg jug`; units g/kg/lb/oz, ml/L/gal, bags/bottles/rolls (needs the pack size in supplies.md). `supplies` = full list, `shopping list` = only what to order. **Sunday ~9 am** the shopping list arrives on its own.
 - **devices** = signed-in devices, each with a Sign out button.
-- **Morning:** report at 06:25 (with normal-day, where-it's-heading, after-events and power sections), Claude Reefer daily log to Telegram at 06:30 (👍/👎 buttons). Things logged on the home page go into it too.
+- **Morning:** report at 06:25 (with normal-day, where-it's-heading, after-events and power sections), Xanthe daily log to Telegram at 06:30 (👍/👎 buttons). Things logged on the home page go into it too.
 - **Alerts** ("Reef alert: …"): feed silent, return flow low, salinity near the top, jug low, Trident stalled, plus **instrument watch**: probe fault (impossible reading), frozen sensor (same value 6 h), probe drift (the gap between two probes changed), Trident skipped an alk run (it learned the run times: ~00:20, 06:15, 12:40, 18:20). Sent once, reminded every 12 h, "cleared" when fixed. Quiet 22:00-07:00 (held until morning).
 - **Voice:** iPhone Shortcut "Reefer" (works on Tailscale away from home).
 
@@ -127,14 +127,14 @@ claude-reefer repo (this guide is its section 0).
 
 ### GHL ProfiLux notes
 - Wired at 10.0.0.215 (PLM-WiFiLAN card). Every script only reads; nothing writes to a controller without your OK.
-- **The GHL API can't switch sockets (settled 10-14 from the GHL API Reference v1.1).** It can write setpoints, lighting, feed pause / maintenance / water change / light scenes, and KH/ION Director actions, but switch channels are read-only by design: GHL keeps switching inside the controller so a network outage can't leave a tank unheated. Switching is built for your own LSSS outlet box instead; the GHL stays a read source.
-- **The LSSS reads the GHL again (10-13):** new driver on the GHL local API (port 10002). The LSSS settings page shows a live badge (green = connected, amber = connected but no new data, red = the error). Sensor names on the LSSS come from its config (`/home/pi/.config/lsss/config.yaml`, `ghl:` block). **Since 10-14 Claude Reefer reads the GHL through the LSSS**, so only the LSSS talks to the controller. If the "GHL feed silent" alert comes, look at the LSSS GHL badge first, then the ProfiLux.
+- **The GHL API can't switch sockets (settled 10-14 from the GHL API Reference v1.1).** It can write setpoints, lighting, feed pause / maintenance / water change / light scenes, and KH/ION Director actions, but switch channels are read-only by design: GHL keeps switching inside the controller so a network outage can't leave a tank unheated. Switching is built for your own Coeno outlet box instead; the GHL stays a read source.
+- **Coeno reads the GHL again (10-13):** new driver on the GHL local API (port 10002). The Coeno settings page shows a live badge (green = connected, amber = connected but no new data, red = the error). Sensor names on Coeno come from its config (`/home/pi/.config/lsss/config.yaml`, `ghl:` block). **Since 10-14 Xanthe reads the GHL through Coeno**, so only Coeno talks to the controller. If the "GHL feed silent" alert comes, look at the Coeno GHL badge first, then the ProfiLux.
 - Expansion cards: **configure them in the ProfiLux first, then move them to the Expansion Box** (the humidity card on the 200 is sensor 10 = room temp, 11 = humidity).
 - Flow ports since the card swap: port 2 = 320 return, 0/1 = 200 returns A/B, 3 empty. History keeps the line names.
 - The GHL clock runs 1 h slow until DST is enabled on it.
 
 ### When something looks wrong
-- "Hydros feed silent": refresh the Hydros feed on the LSSS.
+- "Hydros feed silent": refresh the Hydros feed on Coeno.
 - A page not updating: it reconnects on its own within ~10 s; reload if not.
 - Everything stale at once / Self test fails on files: check Maximilian (the reef_lab share lives there; 10-12 it went down for ~20 min and everything resumed on its own).
 - Sign-in request didn't arrive: wait ~10 s (the bot checks every 8 s); requests expire after 5 minutes; max 5 per 10 minutes.
@@ -142,10 +142,10 @@ claude-reefer repo (this guide is its section 0).
 - Anything odd: Telegram `status`, or Self test on the home page.
 
 ### What's next
-- Upgrade plan: `Claude Reefer Upgrade Plan` (repo: `docs/UPGRADE-PLAN.md`). Groups 1, 2 and 3 done; Group 4 items 0-3 and Group 5 items 1-2 (prediction window, ask anything) done 10-14.
-- **Order agreed 10-14:** (1) Claude Reefer reads the GHL through the LSSS (done 10-14); (2) LSSS sign-in (Group 7); (3) switching with rules on your own outlet box, tested on the simulator first; (4) mixing pump as the first real device, then current alerts. (The GHL write question is settled: it can't switch sockets.)
-- **Group 4 (next):** done 10-14: GHL through the LSSS, replay slider, ask the schematic, weekly photo review. Left: mixing-pump on/off, outlet switching, right-now current alerts (all wait for the LSSS sign-in). Done 10-13: the LSSS's GHL driver. The mixing pump is on the Hydros today and **moves to the LSSS outlet box**. Switching goes Claude Reefer → LSSS (its rules, its veto) → outlet box, and waits for the LSSS sign-in (Group 7).
-- **Roadmap:** 5 = coral growth story next, once photos build up (prediction window and ask anything done). 6 = LSSS integration with rules in both layers (LSSS holds the veto). **7 = harden the LSSS** (design: LSSS repo `docs/GROUP-7-HARDEN-LSSS.md`): extend the LSSS's existing fault service; never stop trying; a diagnostic ladder that finds the real broken link (your internet vs the controller); plain-language notices a reef sitter can follow; the LSSS sign-in. 8 = NFC tracking (chemicals/reagents, frag plugs). **9 = candidate ideas:** observer cameras on the display and sump tied to the chemistry and flow data (start: Amcrest IP5M-T1179EW-AI-V3; imaging on vincent, later an x86 mini PC), and reading how the livestock are doing.
+- Upgrade plan: `Xanthe Upgrade Plan` (repo: `docs/UPGRADE-PLAN.md`). Groups 1, 2 and 3 done; Group 4 items 0-3 and Group 5 items 1-2 (prediction window, ask anything) done 10-14.
+- **Order agreed 10-14:** (1) Xanthe reads the GHL through Coeno (done 10-14); (2) Coeno sign-in (Group 7); (3) switching with rules on your own outlet box, tested on the simulator first; (4) mixing pump as the first real device, then current alerts. (The GHL write question is settled: it can't switch sockets.)
+- **Group 4 (next):** done 10-14: GHL through Coeno, replay slider, ask the schematic, weekly photo review. Left: mixing-pump on/off, outlet switching, right-now current alerts (all wait for the Coeno sign-in). Done 10-13: Coeno's GHL driver. The mixing pump is on the Hydros today and **moves to the Coeno outlet box**. Switching goes Xanthe → Coeno (its rules, its veto) → outlet box, and waits for the Coeno sign-in (Group 7).
+- **Roadmap:** 5 = coral growth story next, once photos build up (prediction window and ask anything done). 6 = Coeno integration with rules in both layers (Coeno holds the veto). **7 = harden Coeno** (design: Coeno repo `docs/GROUP-7-HARDEN-Coeno.md`): extend Coeno's existing fault service; never stop trying; a diagnostic ladder that finds the real broken link (your internet vs the controller); plain-language notices a reef sitter can follow; the Coeno sign-in. 8 = NFC tracking (chemicals/reagents, frag plugs). **9 = candidate ideas:** observer cameras on the display and sump tied to the chemistry and flow data (start: Amcrest IP5M-T1179EW-AI-V3; imaging on vincent, later an x86 mini PC), and reading how the livestock are doing.
 - **The app:** home-screen app with push done 10-14; a native iPhone/iPad app (Xcode) is a later task.
 - **Product direction:** open reference hardware (temp probe, ATO, basic and heater-grade outlet boxes); see `Product Strategy - open reference hardware 2026-10-14`.
 - Open questions for you (Group 7): if a tunnel ever comes back, look-only or control when signed in; who else gets notices; how long before a notice; may notices suggest physical actions.
@@ -159,7 +159,7 @@ claude-reefer repo (this guide is its section 0).
  Apex (Trident alk/Ca/Mg, pH, temp, sump level) ─┐
  Hydros (salinity, pH, sump temp, TDS, room temp, ATO, levels, switches) ─┤ every 5 min
                                                   v
- LSSS Pi 10.0.0.228 (InfluxDB ext_probe, FastAPI :8000; /api/hydros/live = Hydros outputs)
+ Coeno Pi 10.0.0.228 (InfluxDB ext_probe, FastAPI :8000; /api/hydros/live = Hydros outputs)
         │ reefchem.py pull: every 15 min, and 26 h before the morning report
         v
  reefcore CT 101 ── reefchem.db + reef-baselines.md                 (reef_lab dataset)
@@ -168,7 +168,7 @@ claude-reefer repo (this guide is its section 0).
    │  ghl-pull.py    (5 min) → reefchem.db GHL ProfiLux 10.0.0.215:10002 (flows, sensor slots)
    │  06:25 reefchem.py report → reef_lab/data/reports/YYYY-MM-DD.txt
    │
-   ├─▶ 06:30 Claude Reefer (mccrae CT 103, Claude Code headless, Max plan, flat rate)
+   ├─▶ 06:30 Xanthe (mccrae CT 103, Claude Code headless, Max plan, flat rate)
    │        → reef_lab/log/YYYY/MM/YYYY-MM-DD-daily.md  → Telegram (Reef Log bot, 👍/👎 buttons)
    │        1st of month 07:00: monthly review → YYYY-MM-monthly-review.md
    │
@@ -198,11 +198,11 @@ claude-reefer repo (this guide is its section 0).
 |---|---|---|
 | maximilian | `10.0.0.3` (storage `10.0.40.3`) | holds `reef` and `reef_lab` datasets |
 | vincent | `10.0.0.7` | Proxmox host; `reef_lab` at `/mnt/reef_lab`; smoke test `~claude/bin/reef-smoke.sh` |
-| reefcore CT 101 (was hermes) | `10.0.0.100` | `/opt/reefcore/`: reefchem, hydros-pull, ato-watch, ghl-pull; nz-home; orionid-planner; this repo at `/opt/claude-reefer` |
-| mccrae CT 103 | `10.0.0.16` | Claude Reefer: reef log, Telegram listener, voice endpoint |
+| reefcore CT 101 (was hermes) | `10.0.0.100` | `/opt/reefcore/`: reefchem, hydros-pull, ato-watch, ghl-pull; nz-home; orionid-planner; this repo at `/opt/xanthe` |
+| mccrae CT 103 | `10.0.0.16` | Xanthe: reef log, Telegram listener, voice endpoint |
 | palomino CT 112 | `10.0.0.112` | Qdrant + Tika search, MCP `:8765` |
 | pizer CT 117 | `10.0.0.117` | shut down, not needed (Ollama retired); disk kept |
-| LSSS Pi | `10.0.0.228:8000` | Apex + Hydros inputs (InfluxDB), Hydros live outputs |
+| Coeno Pi | `10.0.0.228:8000` | Apex + Hydros inputs (InfluxDB), Hydros live outputs |
 | Apex | `10.0.0.227` | AquaController |
 | GHL ProfiLux | `10.0.0.215` | web UI (digest auth, realm "ghl"); local API TCP 10002 (full access enabled, scripts read only) |
 
@@ -233,18 +233,18 @@ Backups: `reef` and `reef_lab` must be in maximilian's snapshot task and bob's r
 | always | Telegram listener (`reef-log-bot.service`), voice endpoint (`reef-voice.service`) | mccrae |
 | every 15 s (in 5-min windows) | ATO top-off watcher | reefcore |
 | every minute | `ghl-pull.py tick` (flows every minute, sensor slots every 5 min); `hydros-pull.py fast` (outputs) | reefcore (`/etc/cron.d/reefcore-fast`) |
-| every 5 min | Apex/Hydros into InfluxDB; `hydros-pull.py pull` (+ alerts, ATO watcher) | LSSS, reefcore |
+| every 5 min | Apex/Hydros into InfluxDB; `hydros-pull.py pull` (+ alerts, ATO watcher) | Coeno, reefcore |
 | every 15 min | `reefchem.py pull --hours 2` (also ingests the Telegram inbox) | reefcore |
 | :15 / :45 hourly | palomino ingest: `reef` / `reef_lab` | palomino |
 | 06:25 | pull 26 h + write the day's report | reefcore |
-| 06:30 | Claude Reefer daily log → Telegram | mccrae |
+| 06:30 | Xanthe daily log → Telegram | mccrae |
 | 1st, 07:00 | monthly review (cron line: Joe to add) | mccrae |
 
 All containers run America/Detroit time.
 
 ---
 
-## 4. Claude Reefer: the reef log (mccrae)
+## 4. Xanthe: the reef log (mccrae)
 
 The long-term memory of the tank: what the data showed, what Claude thought, what Joe said and did.
 
@@ -334,7 +334,7 @@ v0.2.0, 0.3.0 in progress; see README/CHANGELOG there). Config `/etc/nz-home.env
 - **Live:** `GET /api/events` (Server-Sent Events). A watcher thread fingerprints reefchem.db, hydros.db, alerts-state.json, maintenance and recipes files every 5 s and pushes what changed; pages refetch only then (60-120 s timer kept as fallback). Works through Caddy (nz.home.arpa). `?nolive` turns it off (headless screenshots stall on an open stream).
 - **History for any number:** `GET /api/series?p=&src=&days=` (points downsampled to ~400, normal band, events: water changes, maintenance log, mixed jugs, hand tests; `src=hydros_out` for Hydros outputs). Shared `/static/nz.js` (`NZ.live`, `NZ.chart`, `NZ.bind`): home gauges, maintenance panel values and pop-up readings, recipes barrel sensors. Deep link: any page `?chart=<param>[&src=&days=&label=]`.
 - **Maintenance by data:** `reefchem.data_due()`; the worse of calendar and sensors sets the task state ("BY DATA · …"), with the sensor reason in the pop-up and the alert glow.
-- **Filter roller (10-21):** Hydros `1RFliter Roller` is the roller's **advance level sensor**, not an overflow switch: each trip runs the `Filter Roller` motor output ~2 s (one advance). Brief trips are normal. **Stuck on** (on in 2+ consecutive samples) = roll jammed, slipping on the motor drive, or out, and makes M02 due. An empty roll gives a low level, so it never trips the sensor. Since LSSS `754c3cf` (10-21 00:01) the LSSS writes every on/off edge to Influx (analog values stay at one write per 5 min), so `reefchem pull` brings each advance into `readings`. `roller_status()` counts 0->1 edges since `ROLLER_EDGES_SINCE`, learns advances per roll from complete rolls between logged M02 changes (`roller_changes()` replays `maintenance-log.md`, honouring undo), then gives % used and a run-out date at the 7-day rate; info on the card, due at 95%+ used or 2 days or less left. Log roll changes the day they happen (COMPLETE, or *done earlier* with the date). The first prediction needs one full counted roll.
+- **Filter roller (10-21):** Hydros `1RFliter Roller` is the roller's **advance level sensor**, not an overflow switch: each trip runs the `Filter Roller` motor output ~2 s (one advance). Brief trips are normal. **Stuck on** (on in 2+ consecutive samples) = roll jammed, slipping on the motor drive, or out, and makes M02 due. An empty roll gives a low level, so it never trips the sensor. Since Coeno `754c3cf` (10-21 00:01) Coeno writes every on/off edge to Influx (analog values stay at one write per 5 min), so `reefchem pull` brings each advance into `readings`. `roller_status()` counts 0->1 edges since `ROLLER_EDGES_SINCE`, learns advances per roll from complete rolls between logged M02 changes (`roller_changes()` replays `maintenance-log.md`, honouring undo), then gives % used and a run-out date at the 7-day rate; info on the card, due at 95%+ used or 2 days or less left. Log roll changes the day they happen (COMPLETE, or *done earlier* with the date). The first prediction needs one full counted roll.
 
 **Added 2026-10-10/11:**
 - **Fit to screen:** the home page never scrolls; gauges shrink through full / sparkline / dial / chip / micro
@@ -361,9 +361,9 @@ v0.2.0, 0.3.0 in progress; see README/CHANGELOG there). Config `/etc/nz-home.env
 
 | Source | How it arrives | Notes |
 |---|---|---|
-| Apex + Trident | LSSS InfluxDB `ext_probe` | Trident alk 3x/day, Ca/Mg 1x/day; alk reads ~0.5 dKH low |
-| Hydros inputs | LSSS InfluxDB `ext_probe` (`hydros:<input>` in baselines) | refresh the LSSS Hydros feed if the report says "no Hydros data" |
-| Hydros outputs | LSSS `/api/hydros/live` → `hydros-pull.py` → `hydros.db` | expected overrides in `expected-overrides.txt` |
+| Apex + Trident | Coeno InfluxDB `ext_probe` | Trident alk 3x/day, Ca/Mg 1x/day; alk reads ~0.5 dKH low |
+| Hydros inputs | Coeno InfluxDB `ext_probe` (`hydros:<input>` in baselines) | refresh the Coeno Hydros feed if the report says "no Hydros data" |
+| Hydros outputs | Coeno `/api/hydros/live` → `hydros-pull.py` → `hydros.db` | expected overrides in `expected-overrides.txt` |
 | ATO | Hydros "1R Sump ATO" input, 15 s watcher | probe sits 5-6" from the ATO inlet |
 | GHL ProfiLux 4 | GHL API v1.1 over TCP 10002 at 10.0.0.215 (PLM-WiFiLAN, wired, fw 7.52, full access), `ghl-pull.py` | `FLOWSENSOR[n] ACTFLOW` (L/h), `SENSOR[n] ACTVALUE` for slots 0-15. One TCP connection per read: the port refuses a new connection for ~3 s after the last one closed. NACK -4 unknown resource, -5 unknown attribute, -101 missing/out of range, -102 not supported, -104 end of history, -105 no access |
 
@@ -487,7 +487,7 @@ See the repo README ("GitHub and publishing") for both repos, deploy keys and th
 | Upgrade Group 3: normal-day model, before/after per event, power cost | **built 10-12**; Hydros/GHL ribbons need ~5 days of data; heaters + display lights not metered yet (where are they plugged in?) |
 | Smart RO/DI for city water at the new place | roadmap |
 | Upgrade Group 4: replay slider, ask the schematic, weekly photo review, controller-action decision | planned |
-| GHL doser ESP32 retrofit (PoE, LSSS family, scales, 4 isolated triggers) | **parked** on the roadmap until the outlet PCB is done and the move |
+| GHL doser ESP32 retrofit (PoE, Coeno family, scales, 4 isolated triggers) | **parked** on the roadmap until the outlet PCB is done and the move |
 | ATO pump flow (1 min into a cup) → gallons evaporated per day | at-home list |
 | Hydros overrides, ORP probe, Apex vs Hydros pH gap ~0.3, D4 Mg regimen, salt batch test | at-home list |
 | Water volume, WC volume, canary corals | tank profile TBD |
@@ -497,7 +497,7 @@ See the repo README ("GitHub and publishing") for both repos, deploy keys and th
 | Phase 3: business/sales, wishlist, QT workflow, cost page, emergency alerts | roadmap |
 | Hermes program uninstall on reefcore (`/usr/local/lib/hermes-agent`); keep `/root/.hermes` (node, scripts symlink) | Joe, optional |
 | Confirm `reef_lab` in snapshot task + bob replication | to check |
-| LSSS API has no auth (incl. outlet/heater routes) | keep off the internet |
+| Coeno API has no auth (incl. outlet/heater routes) | keep off the internet |
 
 ---
 

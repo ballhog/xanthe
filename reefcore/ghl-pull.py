@@ -1,34 +1,34 @@
 #!/usr/bin/env python3
 """GHL ProfiLux logger (reefcore CT 101). stdlib only.
 
-Since 2026-10-14 (Group 4 item 0) the GHL is read THROUGH THE LSSS: GET http://10.0.0.228:8000/api/ghl/live.
-Only the LSSS talks to the controller (TCP 10002 serves one client at a time and refuses new connections
+Since 2026-10-14 (Group 4 item 0) the GHL is read THROUGH COENO: GET http://10.0.0.228:8000/api/ghl/live.
+Only Coeno talks to the controller (TCP 10002 serves one client at a time and refuses new connections
 for ~3 s after one closes). Stored exactly as before, in reefchem.db (table readings, source 'ghl'):
 the 4 flow sensors (param ghl_flow0..3, L/h, LOGICAL lines) and the sensor slots (param ghl_s<N>,
 N = GHL SENSOR index, 0-based). reefchem's pull renames ghl_s0/8/10/11 to temp_ghl/temp_200/
 room_temp_ghl/humidity via the baselines file, as before.
 
-LSSS channels are 1-based: probe channel c = GHL SENSOR[c-1]; flow channel c = physical FLOWSENSOR[c-1].
-Readings carry the LSSS's last_update time, so a stale LSSS stores nothing new (INSERT OR IGNORE) and the
-"GHL feed silent" alert fires as it always did. Refused if the LSSS says not connected or the data is
+Coeno channels are 1-based: probe channel c = GHL SENSOR[c-1]; flow channel c = physical FLOWSENSOR[c-1].
+Readings carry Coeno's last_update time, so a stale Coeno stores nothing new (INSERT OR IGNORE) and the
+"GHL feed silent" alert fires as it always did. Refused if Coeno says not connected or the data is
 older than MAX_AGE_S.
 
 Cron every minute: `ghl-pull.py tick` stores the flows each minute (live screens) and the sensor slots
 every 5 min. `pull` stores everything once.
 
-  ghl-pull.py pull      read once (via the LSSS) and store
-  ghl-pull.py show      read once (via the LSSS) and print, store nothing
+  ghl-pull.py pull      read once (via Coeno) and store
+  ghl-pull.py show      read once (via Coeno) and print, store nothing
   ghl-pull.py direct    read the GHL itself on TCP 10002 and print, store nothing (diagnostic only:
-                        it competes with the LSSS for the controller's single connection)
+                        it competes with Coeno for the controller's single connection)
 """
 import json, socket, sqlite3, sys, time, urllib.request
-try:  # LSSS machine key on every call to the LSSS (LSSS sign-in, 2026-10-14); harmless with no key
-    __import__("sys").path.insert(0, "/opt/reefcore"); import lsss_auth  # noqa: E402,F401
+try:  # Coeno machine key on every call to Coeno (Coeno sign-in, 2026-10-14); harmless with no key
+    __import__("sys").path.insert(0, "/opt/reefcore"); import coeno_auth  # noqa: E402,F401
 except Exception:
     pass
 
-LSSS_URL = "http://10.0.0.228:8000/api/ghl/live"
-MAX_AGE_S = 180                               # LSSS polls ~1/min; older than this = treat as no data
+COENO_URL = "http://10.0.0.228:8000/api/ghl/live"
+MAX_AGE_S = 180                               # Coeno polls ~1/min; older than this = treat as no data
 IP, PORT = "10.0.0.215", 10002                # only for `direct`
 DB = "/root/reef-lab/data/reefchem.db"
 FLOWS, SENSORS = 4, 16
@@ -41,17 +41,17 @@ LOGICAL = {phys: log for log, phys in PORT_MAP.items()}
 
 
 def read_lsss():
-    """Return (ts, {param: value}) from the LSSS, or raise OSError with a plain reason."""
+    """Return (ts, {param: value}) from Coeno, or raise OSError with a plain reason."""
     try:
-        with urllib.request.urlopen(LSSS_URL, timeout=15) as r:
+        with urllib.request.urlopen(COENO_URL, timeout=15) as r:
             d = json.load(r)
     except (OSError, ValueError) as e:
-        raise OSError(f"LSSS not reachable at {LSSS_URL}: {e}")
+        raise OSError(f"Coeno not reachable at {COENO_URL}: {e}")
     if not d.get("connected"):
-        raise OSError(f"LSSS reports the GHL not connected: {d.get('error') or 'no reason given'}")
+        raise OSError(f"Coeno reports the GHL not connected: {d.get('error') or 'no reason given'}")
     age = d.get("last_update_age_s")
     if age is None or age > MAX_AGE_S:
-        raise OSError(f"LSSS GHL data is stale ({age if age is None else round(age)} s old)")
+        raise OSError(f"Coeno GHL data is stale ({age if age is None else round(age)} s old)")
     vals = {}
     for p in d.get("probes", []):
         ch, v = p.get("channel"), p.get("_value_raw", p.get("value"))
@@ -64,7 +64,7 @@ def read_lsss():
         elif 1 <= int(ch) <= SENSORS:
             vals[f"ghl_s{int(ch) - 1}"] = float(v)
     if not vals:
-        raise OSError("LSSS returned no GHL probe values")
+        raise OSError("Coeno returned no GHL probe values")
     return int(d["last_update"]), vals
 
 
@@ -119,9 +119,9 @@ def main():
     try:
         ts, vals = read_lsss()
     except OSError as e:
-        raise SystemExit(f"GHL via LSSS: {e}")
+        raise SystemExit(f"GHL via Coeno: {e}")
     if cmd == "show":
-        print(f"via LSSS, data from {time.strftime('%H:%M:%S', time.localtime(ts))}")
+        print(f"via Coeno, data from {time.strftime('%H:%M:%S', time.localtime(ts))}")
         for k, v in vals.items():
             print(f"{k:10} {v:g}")
         return
@@ -131,7 +131,7 @@ def main():
     cur = db.executemany("INSERT OR IGNORE INTO readings VALUES (?,?,?,?,?)",
                          [(ts, "ghl", k, k, v) for k, v in vals.items()])
     db.commit()
-    print(f"{cur.rowcount} GHL readings stored (via LSSS)")
+    print(f"{cur.rowcount} GHL readings stored (via Coeno)")
 
 
 if __name__ == "__main__":

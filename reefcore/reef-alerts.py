@@ -39,9 +39,9 @@ def hm(ts):
 def checks(db, now):
     """Return {key: (message, clear_message)} for every condition active now."""
     act = {}
-    for src, name, fix in (("apex", "Apex", "Check the LSSS Pi and the Apex link."),
-                           ("hydros", "Hydros", "Refresh the Hydros feed on the LSSS."),
-                           ("ghl", "GHL", "Check the LSSS GHL page (10.0.0.228:8000, GHL badge), then the GHL ProfiLux (10.0.0.215) and its API setting.")):
+    for src, name, fix in (("apex", "Apex", "Check the Coeno Pi and the Apex link."),
+                           ("hydros", "Hydros", "Refresh the Hydros feed on Coeno."),
+                           ("ghl", "GHL", "Check the Coeno GHL page (10.0.0.228:8000, GHL badge), then the GHL ProfiLux (10.0.0.215) and its API setting.")):
         last = db.execute("SELECT MAX(ts) FROM readings WHERE source=?", (src,)).fetchone()[0]
         if last and now - last > 30 * 60:
             act[f"feed:{src}"] = (f"⚠️ {name} feed silent {rc.age(now - last)} (last reading {hm(last)}). {fix}",

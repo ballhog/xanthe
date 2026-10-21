@@ -1,9 +1,9 @@
 #!/bin/sh
 # Refresh the repo from the live code, then commit + push. Run from vincent:
 #   pct exec 103 -- sh /root/reef-log/stage-code.sh    (mccrae copies its code to reef_lab/.code-drop)
-#   pct exec 101 -- /opt/claude-reefer/publish.sh "message"
+#   pct exec 101 -- /opt/xanthe/publish.sh "message"
 set -e
-cd /opt/claude-reefer
+cd /opt/xanthe
 cp -p /opt/reefcore/*.py /opt/reefcore/*.sh reefcore/ 2>/dev/null || true
 cp /root/reef-lab/.code-drop/mccrae/* mccrae/ 2>/dev/null || true
 for f in hydros-pull reefchem-pull reef-report; do cp -p /etc/cron.d/$f cron/$f 2>/dev/null || true; done

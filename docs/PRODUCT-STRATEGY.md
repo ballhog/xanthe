@@ -1,7 +1,7 @@
 # Product strategy: open reference hardware (2026-10-14)
 
 Captured from Joe's thinking on the drive in, 2026-10-14. Strategy note, not a plan: no product is committed yet.
-Related: `Claude Reefer Upgrade Plan` (Group 4 control target), LSSS repo `docs/GROUP-7-HARDEN-LSSS.md`
+Related: `Xanthe Upgrade Plan` (Group 4 control target), Coeno repo `docs/GROUP-7-HARDEN-Coeno.md`
 (the safety layer the hardware leans on).
 
 ## Where this came from
@@ -14,16 +14,16 @@ Related: `Claude Reefer Upgrade Plan` (Group 4 control target), LSSS repo `docs/
 
 ## The thesis
 - **The software front end is now a commodity.** Anyone can make one with an AI. Let them. Give the software ideas
-  away (designs, patterns, the LSSS approach) for people to iterate on.
+  away (designs, patterns, the Coeno approach) for people to iterate on.
 - **The hardware is the return path.** Those front ends all hit the same wall: Apex and Hydros are closed monitors.
   The AI can see everything and safely touch almost nothing. What people come back for is a piece of hardware they
   can actually act through.
 - **What to build: open, network-connected devices** that work in any ecosystem: driven from Hydros inputs, Apex,
-  GHL, the LSSS, or directly from someone's own AI. A universal, open controller family.
+  GHL, Coeno, or directly from someone's own AI. A universal, open controller family.
 - **Safety lives in the device, not the model.** Veto, max-on timer, auto-off, never failing silently: built into the
   hardware and firmware, so the AI never has to be trusted with the dangerous part. This is the same split already
-  used at home: the LSSS is the deterministic layer, Claude Reefer the intelligence on top.
-- **The LSSS becomes the reference implementation**, the working proof of how these devices are meant to be used,
+  used at home: Coeno is the deterministic layer, Xanthe the intelligence on top.
+- **Coeno becomes the reference implementation**, the working proof of how these devices are meant to be used,
   rather than a controller competing head-on with Apex.
 - **Open source and for sale at once.** Publish the design; sell the built, tested unit. Joe: it works on both sides.
 

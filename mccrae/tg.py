@@ -4,6 +4,7 @@
   tg.py listen               run forever, answer at once (systemd service reef-log-bot)
   tg.py collect              same, one pass (fallback from cron):
                                - "alk 7.4", "ca 430 mg 1350" ... -> hand test, queued for reefchem
+                               - "ranco 25.4/25.5 25.3/25.5 25.6/25.5" -> Ranco readings (hand params ranco1..3)
                                - 👍 / 👎 buttons under a digest -> filed as agree / disagree
                                - anything else -> filed as Joe's reply in the next morning's log run
   tg.py take                 print pending replies and clear them (used by reef-log.sh)
@@ -623,6 +624,90 @@ def queue_hand(ts, pairs):
             f.write(json.dumps({"ts": ts, "param": p, "value": v}) + "\n")
 
 
+# ---------- Ranco readings (2026-10-15): the 3 stand-alone heater thermostats, read by hand ----------
+# "ranco 25.4/25.5 25.3/25.5 25.6/25.5" = display temp / setpoint for Ranco 1, 2, 3 (in that order).
+# Also: "ranco readings: 1: 25.4/25.5, 2: 25.3/25.5, 3: 25.6/25.5", temps only ("ranco 25.4 25.3 25.6"), or °F (converted).
+# Stored as hand readings ranco1..3 and ranco1_set..3_set (reefchem ingests them; nz-home /api/series charts them).
+RANCO_LEAD = re.compile(r"^\s*rancos?(?:\s+(?:readings?|temps?|temperatures?|read))?\b[\s:,-]*(.*)$", re.I | re.S)
+RANCO_LABEL = re.compile(r"(?:^|(?<=[\s,;]))(?:r|ranco\s*|#)?([1-9])\s*[:=)]\s*", re.I)
+RANCO_NUM = re.compile(r"(?<![\d.])(\d{2,3}(?:\.\d+)?)(?:\s*/\s*(\d{2,3}(?:\.\d+)?))?(?![\d.])")
+RANCO_DIFF_C = 0.5     # flag a Ranco whose display is this far from the tank probes, or setpoints this far apart
+RANCO_MAINT = "M25"
+
+
+def _to_c(v):
+    return round((v - 32) * 5 / 9, 2) if v > 45 else v
+
+
+def ranco_parse(text):
+    """-> [(n, temp_c, set_c or None)] or None if the message isn't a Ranco reading. Raises ValueError on nonsense."""
+    m = RANCO_LEAD.match(text)
+    if not m or "?" in text:
+        return None
+    body = m.group(1)
+    labels = [int(x) for x in RANCO_LABEL.findall(body)]
+    unlabeled = RANCO_LABEL.sub(" ", body)
+    nums = RANCO_NUM.findall(unlabeled)
+    if not nums:
+        return None
+    left = re.findall(r"[\d.]*\d[\d.]*", RANCO_NUM.sub(" ", unlabeled))
+    if left:
+        raise ValueError(f"couldn't read {', '.join(left)}")
+    if labels and len(labels) != len(nums):
+        raise ValueError("label every reading (1: 2: 3:) or none of them")
+    out = []
+    for i, (t, st) in enumerate(nums):
+        n = labels[i] if labels else i + 1
+        tc, sc = _to_c(float(t)), (_to_c(float(st)) if st else None)
+        for v in (tc, sc):
+            if v is not None and not 15 <= v <= 35:
+                raise ValueError(f"{v:g} °C is outside 15-35, looks like a typo")
+        out.append((n, tc, sc))
+    if len({n for n, _, _ in out}) != len(out):
+        raise ValueError("the same Ranco appears twice")
+    return out
+
+
+def latest_tank_temps():
+    """Latest tank probe temps (°C) within the last 2 h: {label: value}."""
+    out = {}
+    try:
+        import sqlite3
+        db = sqlite3.connect("file:/mnt/reef-lab/data/reefchem.db?mode=ro", uri=True, timeout=5)
+        for src, p, lab in (("apex", "temp", "Apex"), ("hydros", "temp_hydros", "Hydros"), ("ghl", "temp_ghl", "GHL")):
+            r = db.execute("SELECT ts, value FROM readings WHERE source=? AND param=? ORDER BY ts DESC LIMIT 1",
+                           (src, p)).fetchone()
+            if r and time.time() - r[0] < 2 * 3600:
+                out[lab] = r[1]
+    except Exception:
+        pass
+    return out
+
+
+def ranco_log(unix_ts, rows):
+    pairs = []
+    for n, t, st in rows:
+        pairs.append((f"ranco{n}", t))
+        if st is not None:
+            pairs.append((f"ranco{n}_set", st))
+    queue_hand(unix_ts, pairs)
+
+
+def ranco_reply(rows, probes):
+    shown = ", ".join(f"R{n} {t:.1f}" + (f" (set {st:.1f})" if st is not None else "") for n, t, st in rows)
+    msg = [f"🌡 Ranco readings saved: {shown} °C."]
+    if probes:
+        ref = sorted(probes.values())[len(probes) // 2]
+        msg.append("Tank probes now: " + ", ".join(f"{k} {v:.1f}" for k, v in probes.items()) + ".")
+        off = [f"R{n} is {t - ref:+.1f} °C from the probes" for n, t, _ in rows if abs(t - ref) >= RANCO_DIFF_C]
+        if off:
+            msg.append("⚠️ " + "; ".join(off) + ". Check that sensor's placement or the heater pair.")
+    sets = [st for _, _, st in rows if st is not None]
+    if len(sets) > 1 and max(sets) - min(sets) >= RANCO_DIFF_C:
+        msg.append(f"⚠️ Setpoints differ by {max(sets) - min(sets):.1f} °C.")
+    return " ".join(msg)
+
+
 def collect():
     token, chat = env()
     os.makedirs(f"{BASE}/state", exist_ok=True)
@@ -807,6 +892,25 @@ def _handle(token, chat, updates, lines):
             coral_note(c[0], f"note: {c[1]}", ts)
             lines.append(f"[{ts}] {c[0]}: {c[1]}")
             soft(token, "sendMessage", {"chat_id": chat, "text": f"🪸 Added to {c[0]}'s history."})
+            continue
+        try:
+            rrows = ranco_parse(text)
+        except ValueError as ex:
+            soft(token, "sendMessage", {"chat_id": chat, "text": f"⚠️ Ranco readings not saved: {ex}. "
+                                       "Format: ranco 25.4/25.5 25.3/25.5 25.6/25.5 (display/setpoint for 1, 2, 3)."})
+            lines.append(f"[{ts}] (Ranco readings rejected: {text})")
+            continue
+        if rrows:
+            ranco_log(m["date"], rrows)
+            reply = ranco_reply(rrows, latest_tank_temps())
+            mrow = next((r for r in maint_rows() if r[0] == RANCO_MAINT), None)
+            if mrow:
+                _, nxt = maint_done(mrow, text, ts)
+                if nxt:
+                    reply += f" {RANCO_MAINT} done, next due {nxt:%b %d}."
+            done = ", ".join(f"R{n} {t:g}" + (f"/{st:g}" if st is not None else "") for n, t, st in rrows)
+            lines.append(f"[{ts}] {text}  [Ranco readings logged (display/set °C): {done}]")
+            soft(token, "sendMessage", {"chat_id": chat, "text": reply})
             continue
         force = text.endswith("!")
         pairs = hand_test(text.rstrip("!"))

@@ -128,3 +128,21 @@ Livestock registry: /mnt/reef-lab/livestock/registry.md lists fish and inverts b
 loss ('L-003 died') is an event worth noting and, if it coincides with a parameter swing, a hypothesis.
 Coral PAR readings ('C-012 par 180') are logged as 'set par = 180' in the coral's timeline, weights as
 'set buoyant_weight_g = X'. When a coral gets a new photo, PAR or weight, compare with its earlier ones.
+
+
+## Tank Memory (2026-10-14)
+Tank Memory is the compiled knowledge of THIS tank: /mnt/reef-lab/tank/ (rules: tank/CLAUDE.md). The daily run READS it and never edits it.
+- Read these right after the tank profile, before writing anything: /mnt/reef-lab/tank/normal/baselines.md (what normal actually looks like here, which is not the same as the targets), /mnt/reef-lab/tank/normal/quirks.md (false alarms, probe quirks, expected overrides), /mnt/reef-lab/tank/decisions.md (Joe's standing choices and his reasons).
+- Use them:
+  - Judge "unusual" against baselines.md as well as the targets, and say which one you mean ("high vs target, normal for this tank").
+  - Anything quirks.md lists as expected (e.g. Mixn Air Pump and Sump WC Drain12v in override off. The water-change routine is still enabled but Joe has its fill and drain pumps forced off, so 1R WATERCHANGE switching does not mean water is being changed; do flag it if it lines up with ATO runs and salinity dips) does not go in the digest as "Left off / check".
+  - Never suggest something decisions.md says Joe decided against.
+- Each claim in Tank Memory carries a status (stated by Joe / confirmed / observed xN / hypothesis / retired). Treat "hypothesis" lines as ideas, not facts, and never cite a retired line as true.
+- Canary: Montipora is the early warning for Montipora-eating nudibranchs. Any note or photo mentioning white patches, bites or eggs on Montipora goes near the top of the digest (tank/incidents/montipora-eating-nudibranchs.md).
+- Ranco readings: the 3 heater thermostats are stand-alone, so Joe reads them by hand (maintenance M25, about weekly). A reply line tagged [Ranco readings logged (display/set °C): R1 25.4/25.5, ...] is one. Compare each display with that morning's Apex, Hydros and GHL tank temps. Put it in the digest only if a Ranco is 0.5 °C or more from the probes, the setpoints differ, or a setpoint changed since the last reading; otherwise one short line at most. Add a tank-update for normal/baselines with the offset (e.g. "R2 reads ~0.3 below the probes") so a steady offset becomes a known normal.
+- Reference search order: Tank Memory first (search_lab_notes), then ReefVault wiki pages (paths containing "ReefVault/wiki/"), then ReefVault raw articles, then the rest of the library.
+- Before using a ReefVault wiki page's numbers, read its "Vetting" box under the title. If it is superseded-target, use the box's current numbers, not the old tables. If there is no box, cite the page as "2000s-era". The tank wins on what is normal here; the reference wins on why.
+
+Tank memory notes: if something today should change a Tank Memory page, add a section "## Tank memory notes" between "## Coral corner" and "## Joe's reply" with one line per item:
+tank-update: <page, e.g. normal/baselines> | <the claim, short> | <evidence: today's numbers or a log path>
+Examples: a pattern seen again (strengthens an observed line), a contradiction of a Tank Memory line, a Joe reply that confirms or corrects a hypothesis, or a new standing decision from Joe. Omit the section when there is nothing. The weekly compile files these.

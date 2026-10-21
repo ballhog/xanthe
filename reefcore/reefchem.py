@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""reefchem: LSSS (Apex) readings + hand tests -> SQLite -> report vs baselines.
-  reefchem.py pull [--hours 26]          fetch ext_probe from the LSSS
+"""reefchem: Coeno (Apex) readings + hand tests -> SQLite -> report vs baselines.
+  reefchem.py pull [--hours 26]          fetch ext_probe from Coeno
   reefchem.py log alk 8.1 ca 430 mg 1350 [--note "text"]
   reefchem.py report                     plain-text summary (all math done here)
   reefchem.py wc [--minutes 120]         log a water change (temp excluded meanwhile)
   reefchem.py forecast [--asof T] [--json]  where alk/Ca/Mg/salinity are heading (prediction window)
 """
 import argparse, csv, io, json, sqlite3, statistics, sys, time, urllib.request
-try:  # LSSS machine key on every call to the LSSS (LSSS sign-in, 2026-10-14); harmless with no key
-    __import__("sys").path.insert(0, "/opt/reefcore"); import lsss_auth  # noqa: E402,F401
+try:  # Coeno machine key on every call to Coeno (Coeno sign-in, 2026-10-14); harmless with no key
+    __import__("sys").path.insert(0, "/opt/reefcore"); import coeno_auth  # noqa: E402,F401
 except Exception:
     pass
 from datetime import datetime
@@ -17,10 +17,10 @@ from pathlib import Path
 DATA = Path("/root/reef-lab/data")
 DB = DATA / "reefchem.db"
 BASELINES = DATA / "reef-baselines.md"
-LSSS = "http://10.0.0.228:8000"
+COENO = "http://10.0.0.228:8000"
 TRIDENT = {"Alkx5", "Cax5", "Mgx5"}   # Apex repeats the last test; count changes only
 STALE_TEST_H = {"Alkx5": 12, "Cax5": 30, "Mgx5": 30}  # Trident runs alk 3x/day, Ca+Mg 1x/day; flag after ~1.5 missed runs
-STALE_FEED_MIN = 60                    # no LSSS data for this long -> alert
+STALE_FEED_MIN = 60                    # no Coeno data for this long -> alert
 WC_PROBE = "LvLSmp"                    # sump level; a drop marks a water change
 WC_DROP = 0.4                          # this far below the 2 h median = water change
 WC_TAIL = 3600                         # keep excluding this long after level recovers
@@ -307,9 +307,9 @@ def _last_done():
 
 
 # Filter roller advances (2026-10-21). Each trip of the Hydros '1RFliter Roller' level sensor runs the roller
-# motor ~2 s = one advance. Before LSSS 754c3cf the sensor was stored every 5 min and the trips were lost;
+# motor ~2 s = one advance. Before Coeno 754c3cf the sensor was stored every 5 min and the trips were lost;
 # from then on every 0->1 edge is stored, so advances can be counted. Counts before this moment are not valid.
-ROLLER_EDGES_SINCE = 1792555266          # 2026-10-21 00:01:06 local, LSSS 754c3cf deployed
+ROLLER_EDGES_SINCE = 1792555266          # 2026-10-21 00:01:06 local, Coeno 754c3cf deployed
 ROLLER_SENSOR = "1RFliter Roller"
 
 
@@ -912,7 +912,7 @@ def collect_events(db, since):
     for t, k in db.execute("SELECT ts, kind FROM events WHERE ts>=? AND kind IN ('wc','rodi','fed','dose')", (since,)):
         ev.append({"key": f"{k}:{t}", "ts": t, "kind": k, "task": "",
                    "label": {"wc": "water change", "rodi": "RO/DI added", "fed": "fed", "dose": "dose change"}.get(k, k)})
-    try:                                                   # events Claude Reefer noted in the daily log
+    try:                                                   # events Xanthe noted in the daily log
         for f in sorted((DATA.parent / "log").glob("*/*/*-daily.md")):
             day = f.name[:10]
             t = int(datetime.fromisoformat(day).timestamp())
@@ -1527,7 +1527,7 @@ def power_report(now):
 
 
 def pull(db, hours):
-    url = f"{LSSS}/api/influx/export?measurements=ext_probe&hours={hours}&format=csv"
+    url = f"{COENO}/api/influx/export?measurements=ext_probe&hours={hours}&format=csv"
     with urllib.request.urlopen(url, timeout=300) as r:
         rows = list(csv.DictReader(io.StringIO(r.read().decode())))
     pmap = {b["probe"]: p for p, b in baselines().items() if b["probe"]}
@@ -1535,7 +1535,7 @@ def pull(db, hours):
     for row in rows:
         if row.get("field") != "value" or not row.get("source"):
             continue
-        if row["source"] == "ghl":      # GHL comes in via ghl-pull.py (LSSS /api/ghl/live), not Influx
+        if row["source"] == "ghl":      # GHL comes in via ghl-pull.py (Coeno /api/ghl/live), not Influx
             continue
         ts = int(datetime.fromisoformat(row["time"]).timestamp())
         probe = row["probe"]
@@ -1580,10 +1580,10 @@ def report(db, asof=None):
         print(f"ALERT: no baselines file at {BASELINES}")
     last = db.execute("SELECT MAX(ts) FROM readings WHERE source='apex'").fetchone()[0]
     if not last or now - last > STALE_FEED_MIN * 60:
-        print(f"ALERT: no LSSS/Apex data for {age(now - last) if last else 'ever'}")
+        print(f"ALERT: no Coeno/Apex data for {age(now - last) if last else 'ever'}")
     lasth = db.execute("SELECT MAX(ts) FROM readings WHERE source='hydros'").fetchone()[0]
     if lasth and now - lasth > STALE_FEED_MIN * 60:
-        print(f"ALERT: no Hydros data for {age(now - lasth)} (refresh the Hydros feed on the LSSS)")
+        print(f"ALERT: no Hydros data for {age(now - lasth)} (refresh the Hydros feed on Coeno)")
     wcs = wc_events(db, now - 30 * D)
     in_wc = lambda t: any(a <= t <= b2 for a, b2, _ in wcs)
     for p, b in bl.items():

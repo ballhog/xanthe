@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Claude Reefer voice endpoint (mccrae). For the iPhone Action-button Shortcut: Dictate -> POST -> Speak.
+"""Xanthe voice endpoint (mccrae). For the iPhone Action-button Shortcut: Dictate -> POST -> Speak.
 
 POST /voice  {"text": "..."}   header Authorization: Bearer <token in /root/reef-log/voice.token>
   - questions ("?" or starting with what/when/how/why/is/does/should/can...) -> Claude answers, spoken style
@@ -74,7 +74,7 @@ class H(BaseHTTPRequestHandler):
         self.wfile.write(b)
 
     def do_GET(self):
-        self.reply(200, "Claude Reefer voice endpoint is up.") if self.path == "/health" else self.reply(404, "not found")
+        self.reply(200, "Xanthe voice endpoint is up.") if self.path == "/health" else self.reply(404, "not found")
 
     def do_POST(self):
         if self.path != "/voice":

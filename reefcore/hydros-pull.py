@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Hydros output logger (reefcore CT 101). stdlib only.
 
-The LSSS stores Hydros *inputs* in InfluxDB but not *outputs* (pumps, lights, skimmer, ozone,
-dosers). This snapshots every output from the LSSS live endpoint into
+Coeno stores Hydros *inputs* in InfluxDB but not *outputs* (pumps, lights, skimmer, ozone,
+dosers). This snapshots every output from the Coeno live endpoint into
 /root/reef-lab/data/hydros.db so on/off history and power draw are kept.
 
   hydros-pull.py fast        outputs only (cron every minute, for the live screens)
@@ -11,12 +11,12 @@ dosers). This snapshots every output from the LSSS live endpoint into
   hydros-pull.py changes [H] on/off changes in the last H hours (default 24)
 """
 import json, sqlite3, sys, time, urllib.request
-try:  # LSSS machine key on every call to the LSSS (LSSS sign-in, 2026-10-14); harmless with no key
-    __import__("sys").path.insert(0, "/opt/reefcore"); import lsss_auth  # noqa: E402,F401
+try:  # Coeno machine key on every call to Coeno (Coeno sign-in, 2026-10-14); harmless with no key
+    __import__("sys").path.insert(0, "/opt/reefcore"); import coeno_auth  # noqa: E402,F401
 except Exception:
     pass
 
-LSSS = "http://10.0.0.228:8000/api/hydros/live"
+COENO = "http://10.0.0.228:8000/api/hydros/live"
 DB = "/root/reef-lab/data/hydros.db"
 HEARTBEAT = 3600   # store an unchanged output at least hourly
 
@@ -36,7 +36,7 @@ def pull(fast=False):
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)   # trend alerts + feed watchdog
         subprocess.Popen([sys.executable, "/opt/reefcore/coral-review.py", "due"], start_new_session=True,
                          stdout=open("/var/log/coral-review.log", "a"), stderr=subprocess.STDOUT)   # Sunday 08:30 coral photo review
-    with urllib.request.urlopen(LSSS, timeout=30) as r:
+    with urllib.request.urlopen(COENO, timeout=30) as r:
         live = json.load(r)
     age = live.get("last_update_age_s")
     if not live.get("connected") or age is None or age > 900:

@@ -1,4 +1,4 @@
-# Claude Reefer
+# Xanthe
 
 The living side of Joe's Node Zero home lab: a ~820 gal LPS reef watched by scripts and written up daily by Claude.
 The home page (nz-home) is its own repo: `ballhog/nz-home`.
@@ -28,16 +28,16 @@ reports, the reef log, coral/livestock registries, photos.
 
 | Repo | What | Lives at | Deploy key (on reefcore CT 101) |
 |---|---|---|---|
-| [`ballhog/claude-reefer`](https://github.com/ballhog/claude-reefer) (private) | this repo: `reefcore/`, `mccrae/`, `cron/`, `docs/` | `/opt/claude-reefer` | `/root/.ssh/claude-reefer_deploy`, ssh host alias `github-claude-reefer` |
+| [`ballhog/xanthe`](https://github.com/ballhog/xanthe) (private) | this repo: `reefcore/`, `mccrae/`, `cron/`, `docs/` | `/opt/xanthe` | `/root/.ssh/claude-reefer_deploy`, ssh host alias `github-claude-reefer` |
 | [`ballhog/nz-home`](https://github.com/ballhog/nz-home) | the home page (nz.home.arpa) | `/opt/nz-home` | `/root/.ssh/nz-home_deploy`, ssh host alias `github-nz-home` |
 
 Both push over SSH with per-repo deploy keys (write access), configured in `/root/.ssh/config` on reefcore.
 Commits are authored as `ballhog <ballhog@users.noreply.github.com>`.
 
-### Push Claude Reefer (from vincent, as root)
+### Push Xanthe (from vincent, as root)
 
     pct exec 103 -- sh /root/reef-log/stage-code.sh                 # mccrae: copy app code to reef_lab/.code-drop
-    pct exec 101 -- /opt/claude-reefer/publish.sh "what changed"    # reefcore: refresh, secret-check, commit, push
+    pct exec 101 -- /opt/xanthe/publish.sh "what changed"    # reefcore: refresh, secret-check, commit, push
 
 `stage-code.sh` copies the mccrae code (no `telegram.env`, `voice.token`, `palomino.token`, `state/`, backups).
 `publish.sh` copies `/opt/reefcore/*` and the cron files in, refuses to commit if anything looks like a token,
@@ -49,7 +49,7 @@ then commits and pushes. Docs in `docs/` are edited in place (Claude keeps them 
 
 ### Check status
 
-    pct exec 101 -- git -C /opt/claude-reefer status -sb
+    pct exec 101 -- git -C /opt/xanthe status -sb
     pct exec 101 -- git -C /opt/nz-home status -sb
 
 ### Add a deploy key for a new repo
